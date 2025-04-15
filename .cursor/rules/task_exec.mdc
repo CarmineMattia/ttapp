@@ -1,0 +1,87 @@
+---
+description: Uses Cursor’s AI to implement tasks from task_*.txt files, integrates the generated code into the project, and updates the task’s status in task.json upon completion.
+globs: 
+alwaysApply: false
+---
+---
+description: Use Cursor’s AI to implement tasks from task_*.txt and update their status in task.json
+globs: src/**/*, tasks/task_*.txt, tasks/task.json
+alwaysApply: false
+---
+
+This rule instructs Cursor on how to assist in implementing tasks by leveraging its AI capabilities, integrating code into the `src/` directory, and updating the task status in `task.json` upon completion.
+
+- **Select a Task**
+  - Identify a task from `@tasks/task.json` or a `task_*.txt` file with `status` set to "pending" and all `dependencies` resolved (e.g., empty or completed).
+  - Example task selection:
+    ```json
+    {
+      "id": "1.1",
+      "title": "Solidify Authentication & RLS",
+      "status": "In Progress/Verification Needed",
+      "dependencies": []
+    }
+    ```
+
+- **Analyze Task Requirements**
+  - Read the task’s `description`, `details`, and `testStrategy` from the `task_XXXX.txt` file or `task.json`.
+  - Example: For "Solidify Authentication & RLS", note the need for Supabase Auth and RLS policies on the `shifts` table.
+
+- **Generate Code with Cursor’s AI**
+  - Use Cursor’s code completion to generate implementation code based on the task details.
+  - Example prompt to Cursor: "Implement Supabase authentication with login, signup, and logout functionality."
+  - Sample generated code:
+    ```typescript
+    // ✅ DO: Task 1.1 - Supabase Auth Implementation
+    import { createClient } from '@supabase/supabase-js';
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+    async function login(email: string, password: string) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return data;
+    }
+    ```
+  - **Avoid anti-patterns**:
+    ```typescript
+    // ❌ DON’T: Hardcode credentials
+    const supabase = createClient('http://example.com', 'secret-key');
+    ```
+
+- **Integrate into Project**
+  - Place the generated code in the appropriate `src/` file (e.g., `src/auth.ts`).
+  - Add a comment linking to the task:
+    ```typescript
+    // Task 1.1: See @tasks/task_0001.txt
+    ```
+
+- **Test the Implementation**
+  - Follow the `testStrategy` (e.g., "Attempt logins/signups with test users").
+  - Write tests in `tests/`:
+    ```typescript
+    describe('Task 1.1: Authentication', () => {
+      test('User can log in', async () => {
+        const result = await login('test@example.com', 'password');
+        expect(result.user).toBeDefined();
+      });
+    });
+    ```
+
+- **Update Task Status**
+  - Once implemented and tested, update the task’s `status` in `@tasks/task.json` to "done" or "in review".
+  - Example update:
+    ```json
+    {
+      "id": "1.1",
+      "status": "done"
+    }
+    ```
+  - Use Cursor to edit `task.json` or provide a command suggestion:
+    ```javascript
+    const tasks = JSON.parse(fs.readFileSync('tasks/task.json', 'utf8'));
+    tasks.find(t => t.id === '1.1').status = 'done';
+    fs.writeFileSync('tasks/task.json', JSON.stringify(tasks, null, 2));
+    ```
+
+- **Sync Task Files**
+  - After updating `task.json`, trigger `@generate_task_files.md` to reflect the status change in `task_0001.txt`.

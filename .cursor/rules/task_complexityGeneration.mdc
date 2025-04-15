@@ -1,0 +1,89 @@
+---
+description: Evaluates task complexity in the tasks directory, suggests subtasks if necessary, references 2025 documentation, and creates a task-complexity-report.json with detailed analysis.
+globs: 
+alwaysApply: false
+---
+---
+description: Generate a task-complexity-report.json file by evaluating the complexity of each task in the tasks directory, suggesting subtasks with prompts, and referencing the latest 2025 documentation.
+globs: tasks/task_*.txt, tasks/task.json
+alwaysApply: false
+---
+
+This rule instructs Cursor to analyze each task file in the `tasks` directory, assess its complexity, recommend subtasks if needed, and generate a detailed `task-complexity-report.json` file.
+
+#### Steps to Implement the Rule
+
+1. **Read Task Files**
+   - Locate the `tasks` directory and process all files matching the pattern `task_*.txt` (e.g., `task_0000.txt`, `task_0001.txt`).
+   - Extract the task ID from the filename (e.g., `task_0001.txt` → ID "1.1").
+   - Read the content of each file to understand the task description and requirements.
+
+2. **Evaluate Task Complexity**
+   - Assess the difficulty of implementing each task based on:
+     - **Description Length**: Longer tasks may indicate more steps (e.g., 1 point per 100 words).
+     - **Technical Terms**: Keywords like "authentication," "API," or "database" suggest higher complexity (e.g., 2 points per term).
+     - **Dependencies**: References to other tasks or components increase complexity (e.g., 1 point per dependency).
+     - **Technologies**: Specific tools or frameworks (e.g., "Supabase," "React") imply specialized effort (e.g., 3 points per technology).
+   - Calculate a complexity score out of 10 by summing these factors and normalizing if needed.
+
+3. **Recommend Subtasks**
+   - If the complexity score exceeds 5 (out of 10), suggest breaking the task into subtasks.
+   - Determine the number of subtasks based on the score (e.g., 1 subtask per 2 points above 5).
+   - Create a detailed **expansion prompt** for each task requiring subtasks, including:
+     - Specific steps or components to split the task into (e.g., "1.2: Implement login, 1.3: Set up policies").
+     - References to the latest 2025 documentation, using Cursor’s research tool to fetch relevant links or summaries.
+   - Example prompt: "Break into: 1.2: Set up Supabase Auth. 1.3: Configure RLS policies. Refer to [Supabase RLS Docs 2025](mdc:https:/supabase.com/docs/2025/rls)."
+
+4. **Generate the JSON Report**
+   - Create a file named `task-complexity-report.json` in the `tasks` directory.
+   - For each task, include:
+     - `taskId`: The ID from the filename (e.g., "1.1").
+     - `taskTitle`: The task’s title, extracted from the file or `task.json`.
+     - `complexityScore`: A score out of 10.
+     - `recommendedSubTasks`: Number of suggested subtasks (0 if no breakdown is needed).
+     - `expansionPrompt`: Instructions for breaking down the task (or empty if not needed).
+     - `reasoning`: A short explanation of the complexity score and subtask recommendation.
+   - Example entry:
+     ```json
+     {
+       "taskId": "1.1",
+       "taskTitle": "Solidify Authentication & RLS",
+       "complexityScore": 7,
+       "recommendedSubTasks": 3,
+       "expansionPrompt": "Break into: 1.2: Implement Supabase Auth for login/signup. 1.3: Set up RLS policies for shifts table. 1.4: Test access control. Refer to [Supabase RLS Docs 2025](mdc:https:/supabase.com/docs/2025/rls).",
+       "reasoning": "Involves authentication setup and RLS policies, both requiring technical expertise and testing."
+     }
+     ```
+
+5. **Incorporate 2025 Documentation**
+   - Use Cursor’s research tool to find the latest documentation from 2025 based on keywords in the task (e.g., "Supabase," "RLS").
+   - Include links or summaries in the `expansionPrompt` to guide implementation (e.g., "[Supabase RLS Docs 2025](mdc:https:/supabase.com/docs/2025/rls)").
+
+#### Example Output
+
+Suppose you have two task files:
+
+- **task_0000.txt**: "Fix minor UI bug in button component."
+- **task_0001.txt**: "Solidify Authentication & RLS with Supabase for shifts table."
+
+The resulting `task-complexity-report.json` might look like this:
+
+```json
+[
+  {
+    "taskId": "1.0",
+    "taskTitle": "Fix minor UI bug in button component",
+    "complexityScore": 2,
+    "recommendedSubTasks": 0,
+    "expansionPrompt": "",
+    "reasoning": "Simple UI fix with no dependencies or technical complexity."
+  },
+  {
+    "taskId": "1.1",
+    "taskTitle": "Solidify Authentication & RLS",
+    "complexityScore": 7,
+    "recommendedSubTasks": 3,
+    "expansionPrompt": "Break into: 1.2: Implement Supabase Auth for login/signup. 1.3: Set up RLS policies for shifts table. 1.4: Test user-specific access. Refer to [Supabase RLS Docs 2025](mdc:https:/supabase.com/docs/2025/rls).",
+    "reasoning": "Requires authentication setup, RLS configuration, and testing, with dependencies on Supabase."
+  }
+]

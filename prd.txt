@@ -1,0 +1,187 @@
+<context>
+# Overview
+TimeYeet is a modern, user-friendly time-tracking application designed for professionals (target age 25-50) who need to manage work hours across different projects, departments, or tasks. It aims to simplify time tracking with an engaging interface and provides essential export features, specifically a custom "Ferrarini-style" CSV format. The primary goal is to make hour logging intuitive and visually appealing, reducing the administrative burden for users juggling multiple responsibilities.
+
+# Core Features
+
+## Core Clocking & Session Management
+-   **Swipe-based Clock In/Out:** Users clock in with a swipe-up gesture and clock out with a swipe-down gesture on the main interface.
+-   **Status System:** Visual indicators (Green: Working, Yellow: Paused, Grey: Logged Off) provide immediate feedback on the user's current state, reflected in the UI's color scheme and animations.
+-   **Manual Pause/Play:** A dedicated pause button allows users to freeze the work timer (yellow status, frosty UI effect), tracking break time separately. A play button resumes the work timer.
+-   **Overtime Tracking:** Automatically activates after 8 hours of work if not clocked out, visually indicated by a purple highlight on the swipe interface and tracked in a separate "Extra Hours" counter.
+-   **Auto-Logout:** Logs the user out automatically after 12 continuous hours (configurable legal limit) with a notification.
+-   **Main UI:** Features a large circular swipe zone with dynamic gradient borders, animated icons, digital clock, live work counter, and status pills for Break Time, Total Hours, and Extra Hours. Includes sound/haptic feedback.
+
+## User Views & Data Management
+-   **Shift Table View:** Displays a detailed table of past shifts (start/end times, total hours, breaks, extra hours, department, project, notes). Allows users to directly edit, add, or delete shifts from this view.
+-   **Shift Calendar View:** Provides a view-only calendar with visual markers ("oil ticks") on days with recorded shifts for a quick overview.
+-   **User Profile:** Allows users to manage their basic information (name, email, etc.).
+
+## Admin Dashboard & Reporting
+-   **Dashboard UI:** A dedicated interface for administrators (inspired by Shadcn/ui) to oversee team activity.
+-   **Data Visualization & Filtering:** Includes graphs and allows filtering of data by date range and employee.
+-   **Metrics Display:** Shows key metrics like total hours, break time, and overtime per employee.
+-   **Export Functionality:**
+    -   Standard CSV/Excel export of shift data.
+    -   Custom "Ferrarini-style" CSV export with specific header format, data arrangement, and formatting rules.
+    -   PDF export option.
+-   **Reporting:** Provides summary views/reports (Daily, Weekly, Monthly).
+
+## End-of-Shift Experience
+-   **"Perla del Giorno" Modal:** Displays a random Italian aphorism upon clock-out.
+-   **Mood Check Modal:** Allows users to log their work mood using custom emojis after clocking out.
+-   **Shift Reflection System:** (Potential integration with Mood Check) Prompts users for accomplishments or reflections, saved with the shift.
+
+## Team Features
+-   **Team Visibility:** Displays a real-time list/grid of team members and their current status (Working, Paused, Logged Off). Accessible via an expandable "Team" tab on the main interface.
+
+## Gamification & Customization
+-   **On-Time Login Rewards:** Earn credits for logging in punctually based on a user-set start time.
+-   **Avatar System:** Customizable user avatars with cosmetics (hats, glasses) unlockable via credits earned. Includes an avatar editor.
+-   **Achievement System:** Tracks focus streaks, productivity milestones, and weekly goals.
+
+## UI/UX Enhancements
+-   **Responsiveness:** Ensures the application is fully usable and visually appealing on both desktop and mobile devices.
+-   **Feedback:** Includes loading indicators, improved error handling, and confirmation dialogs for critical actions.
+-   **Navigation & Branding:** Implements main navigation (hamburger menu) and integrates the app logo.
+
+## Enhanced Features (Lower Priority)
+-   **Zen Mode:** Pomodoro-style timer (e.g., 45/15) with lock-in features, break reminders, and focus statistics.
+-   **Notification System:** Browser notifications for reminders, auto-logout warnings, and potentially random inspirational messages.
+-   **Voice Commands:** Allow clock-in/out/pause via voice.
+-   **Customization:** User-defined Zen mode intervals, Dark/Light theme toggle.
+-   **Integrations:** Potential connection to other productivity apps.
+-   **Multi-language Support.**
+-   **Weekly Insights Email.**
+
+# User Experience
+
+## User Personas
+-   **Freelancer/Consultant:** Needs to accurately track time spent on different client projects (uses department/project fields). Values easy export for invoicing.
+-   **Team Member (Employee):** Needs a simple way to log daily hours and breaks. Appreciates gamification and team visibility features.
+-   **Manager/Admin:** Needs to oversee team hours, track overtime, and generate reports for payroll or analysis.
+
+## Key User Flows
+1.  **Daily Clock-in/Work/Break/Clock-out:** Login -> Swipe Up (Clock In) -> Work (Green Status) -> Tap Pause (Yellow Status) -> Tap Play (Green Status) -> Swipe Down (Clock Out) -> View Perla/Mood Modals -> Logged Off (Grey Status).
+2.  **Overtime Scenario:** User works > 8 hours -> Swipe zone border turns purple -> Extra Hours counter increments -> User eventually Swipes Down or hits 12-hour auto-logout.
+3.  **Shift Correction:** User navigates to Table View -> Finds incorrect shift -> Edits start/end time or details -> Saves changes.
+4.  **Adding a Missed Shift:** User navigates to Table View -> Clicks "Add Shift" -> Enters details -> Saves shift.
+5.  **Admin Reporting:** Admin logs in -> Navigates to Dashboard -> Filters by date/employee -> Views graphs/metrics -> Exports "Ferrarini" CSV.
+6.  **Customization:** User navigates to Profile/Settings -> Edits Avatar -> Sets preferred start time.
+
+## UI/UX Considerations
+-   **Interface Style:** Minimalist, clean, and lively, utilizing Shadcn/ui components and Tailwind CSS for consistency.
+-   **Visual Feedback:** Heavy reliance on color-coding (Green/Yellow/Grey/Purple), animations (frosty blur, icon changes, gradient shifts), and clear typography to convey state.
+-   **Interaction:** Primarily swipe-based for core actions, supplemented by clear buttons (Pause/Play) and standard navigation (tabs, menus).
+-   **Mobile-First:** Design should prioritize usability on smaller screens, scaling gracefully to desktop.
+
+</context>
+<PRD>
+# Technical Architecture
+
+## System Components
+-   **Frontend:** Next.js (App Router) using React and TypeScript.
+-   **UI Components:** Primarily Shadcn/ui, styled with Tailwind CSS.
+-   **State Management:** (To be determined - likely React Context or Zustand for client-side state).
+-   **Backend:** Next.js API Routes for handling data operations.
+-   **Database:** Supabase (PostgreSQL) for data persistence.
+-   **Authentication:** Supabase Auth.
+-   **Linting/Formatting:** ESLint / Prettier.
+
+## Data Models
+-   **Users:** Standard user info (id, email, name, profile settings, avatar config, credits). Managed by Supabase Auth, potentially extended with a `profiles` table.
+-   **Shifts:** (Key table)
+    -   `id`: Primary Key
+    -   `user_id`: Foreign Key to Users
+    -   `start_time`: Timestamp
+    -   `end_time`: Timestamp (nullable while shift is active)
+    -   `total_duration_ms`: Calculated duration
+    -   `break_duration_ms`: Accumulated duration from pause periods
+    -   `overtime_duration_ms`: Calculated duration beyond 8 hours
+    -   `department`: VARCHAR (Optional, user input)
+    -   `project`: VARCHAR (Optional, user input)
+    -   `notes`: TEXT (Optional, user input)
+    -   `mood`: VARCHAR (Optional, logged from modal)
+    -   `reflection`: TEXT (Optional, logged from modal)
+    -   `created_at`, `updated_at`: Timestamps
+-   **Aphorisms:** Table to store Italian aphorisms for the "Perla del Giorno".
+-   **Cosmetics:** Table defining available avatar items, unlock conditions/cost.
+
+## APIs and Integrations
+-   **Internal APIs:** Next.js API routes for CRUD operations on shifts, user profiles, fetching team status, logging moods/reflections, etc. Protected by authentication middleware.
+-   **Supabase:** Direct interaction via Supabase client libraries for Auth and Database operations. Row Level Security (RLS) policies must be strictly enforced.
+-   **(Future) External Integrations:** APIs for potential connections to payroll or other productivity apps.
+
+## Infrastructure Requirements
+-   **Hosting:** Vercel (ideal for Next.js).
+-   **Database:** Supabase Cloud.
+-   **Monitoring:** (To be implemented) Service like Sentry.
+-   **CI/CD:** (To be implemented) GitHub Actions integrated with Vercel.
+
+# Development Roadmap
+
+## Phase 1: Core Functionality (MVP)
+1.  **Authentication & RLS:** Solidify Supabase Auth and essential RLS policies (already partially done).
+2.  **Core Clocking Engine:** Implement swipe gestures, status transitions (Green/Yellow/Grey/Purple), Pause/Play logic, accurate time tracking (work, break, overtime).
+3.  **Main Clocking UI:** Build the main interface with the swipe zone, clock, counters, status pills, and basic feedback.
+4.  **Shift Data Storage:** Finalize `shifts` table schema in Supabase, ensure data saving on clock-out/pause/play.
+5.  **User Table View:** Implement the table view for displaying shifts.
+6.  **Basic Shift Editing:** Allow editing start/end times in the table view.
+7.  **Basic Shift Addition:** Allow adding shifts manually via the table view.
+8.  **Ferrarini CSV Export:** Implement the specific CSV export format for admins.
+9.  **Basic Admin Dashboard:** View user list and trigger export.
+
+## Phase 2: Essential Enhancements
+1.  **Shift Deletion:** Add functionality to delete shifts (with confirmation).
+2.  **User Calendar View:** Implement the read-only calendar visualization.
+3.  **End-of-Shift Modals:** Implement "Perla del Giorno" and Mood Check modals.
+4.  **Team Visibility:** Implement the Team tab and real-time status display.
+5.  **Admin Dashboard Enhancements:** Add filtering (date, user) and basic metrics display.
+6.  **UI Polish:** Improve responsiveness, error handling, add loading indicators (partially done).
+
+## Phase 3: Gamification & Advanced Features
+1.  **Gamification:** Implement on-time login credits, avatar system (editor, unlockables), and achievement tracking.
+2.  **Admin Reporting:** Add graphs and more detailed reporting features (Daily/Weekly/Monthly summaries).
+3.  **Zen Mode:** Implement the Pomodoro timer feature set.
+4.  **Notification System:** Implement browser notifications for key events.
+5.  **Advanced Shift Management:** Add Department/Project/Notes fields fully into the add/edit flow. Shift Reflection system.
+
+## Future Considerations (Post-MVP/Enhancements)
+-   Voice Commands
+-   Integrations
+-   Multi-language Support
+-   Theme Toggle
+-   Weekly Email Insights
+
+# Logical Dependency Chain
+1.  **Foundation:** User Authentication -> Database Schema (Users, Shifts) -> RLS Policies.
+2.  **Core Interaction:** Main Clocking UI -> Clocking Engine (State Machine: Green/Yellow/Grey/Purple) -> Saving Shift Data.
+3.  **User Data Access:** Shift Table View (Read) -> Shift Editing/Adding (Write) -> Shift Deletion (Write).
+4.  **Admin Access:** Basic Admin Dashboard (Read Users) -> Ferrarini CSV Export (Read Shifts).
+5.  **Secondary Views:** Calendar View (Read Shifts).
+6.  **Engagement:** End-of-Shift Modals (Read Aphorisms, Write Mood).
+7.  **Collaboration:** Team Visibility Feature (Read User Status).
+8.  **Advanced Features:** Gamification depends on core logging; Zen Mode is largely standalone; Notifications depend on various events.
+
+# Risks and Mitigations
+
+-   **Accurate Time Tracking Logic:** Complex state transitions (working, paused, overtime) and calculations need rigorous testing.
+    -   **Mitigation:** Use a robust state management approach, unit test time calculation logic, extensive manual testing of edge cases (quick pause/play, crossing midnight, overtime boundary).
+-   **Ferrarini CSV Format Complexity:** The specific format might have undocumented nuances.
+    -   **Mitigation:** Obtain a clear example/specification of the required format early. Implement helper functions specifically for this export, test outputs against the specification.
+-   **UI Responsiveness:** Ensuring a complex UI works well across all screen sizes.
+    -   **Mitigation:** Use Tailwind CSS responsive modifiers diligently, test frequently on different device emulators and real devices.
+-   **Real-time Team Status:** Implementing efficient real-time updates for team visibility.
+    -   **Mitigation:** Evaluate Supabase Realtime subscriptions or implement polling with careful consideration for performance impact. Start with polling if simpler.
+-   **State Management:** Managing the various states (logged in/out, working/paused, overtime) on the client-side.
+    -   **Mitigation:** Choose a suitable state management library (Context, Zustand) and clearly define state transitions.
+
+# Appendix
+
+-   **Key Reference Files:**
+    -   `TODO.md`: Detailed feature checklist.
+    -   `.github/copilot-instructions.md`: Original high-level brief and tech stack info.
+    -   `scripts/example_prd.txt`: This PRD's structure template.
+-   **(Future)** Link to detailed "Ferrarini-style" CSV specification.
+-   **(Future)** Link to UI mockups/designs.
+</PRD> 
