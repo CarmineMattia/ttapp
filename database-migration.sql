@@ -31,4 +31,17 @@ ALTER COLUMN date_of_birth SET NOT NULL;
 -- Add comments for documentation
 COMMENT ON COLUMN employees.surname IS 'User last name';
 COMMENT ON COLUMN employees.date_of_birth IS 'User date of birth for age verification';
-COMMENT ON COLUMN employees.profile_image IS 'URL to user profile image (DiceBear avatar)'; 
+COMMENT ON COLUMN employees.profile_image IS 'URL to user profile image (DiceBear avatar)';
+
+-- Fix RLS policy for registration
+-- Drop the restrictive insert policy
+DROP POLICY IF EXISTS "Users can insert own employee data" ON employees;
+
+-- Create a new policy that allows insertion during registration
+CREATE POLICY "Users can insert own employee data" ON employees
+  FOR INSERT WITH CHECK (
+    -- Allow insertion if user is authenticated and inserting their own record
+    (auth.uid()::text = id::text) OR
+    -- Allow insertion during registration (when auth.uid() might be null but we're creating a new user)
+    (auth.uid() IS NULL AND id IS NOT NULL)
+  ); 

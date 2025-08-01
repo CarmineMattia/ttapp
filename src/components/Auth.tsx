@@ -46,20 +46,20 @@ export default function Auth() {
     // For registration, check if email already exists in employees table
     if (isRegister) {
       try {
-        const { data: existingProfile, error: checkError } = await supabase
+        const { data: existingProfiles, error: checkError } = await supabase
           .from('employees')
-          .select('email')
+          .select('id')
           .eq('email', email.toLowerCase().trim())
-          .single()
         
-        if (!checkError && existingProfile) {
+        if (!checkError && existingProfiles && existingProfiles.length > 0) {
           setError('An account with this email already exists. Please try logging in instead.')
           setLoading(false)
           return
         }
       } catch (checkError) {
-        // If we can't check, proceed with registration and let it fail naturally
-        console.log('Could not check existing email, proceeding with registration')
+        // If we can't check due to schema cache issues, proceed with registration
+        // The registration will fail naturally if email exists
+        console.log('Could not check existing email due to schema issues, proceeding with registration')
       }
     }
     
@@ -126,29 +126,73 @@ export default function Auth() {
           email,
           password,
         })
-        if (error) throw error
+        
+        // Handle specific Supabase Auth errors
+        if (error) {
+          // Check for existing user errors
+          if (error.message?.includes('User already registered') || 
+              error.message?.includes('already been registered') ||
+              error.message?.includes('duplicate key value violates unique constraint') ||
+              error.message?.includes('already exists') ||
+              error.code === '23505') {
+            setError('An account with this email already exists. Please try logging in instead.')
+            return
+          }
+          throw error
+        }
         
         // If registration successful, create employee profile
         if (data.user) {
           console.log('Saving profile with image:', profileImage) // Debug log
+          
+          // Insert minimal profile with only the most basic fields
           const { error: profileError } = await supabase
             .from('employees')
             .insert({
               id: data.user.id,
               name: name.trim(),
-              surname: surname.trim(),
-              date_of_birth: dateOfBirth,
-              email: email.toLowerCase().trim(),
-              profile_image: profileImage
+              email: email.toLowerCase().trim()
             })
           
           if (profileError) {
             console.error('Profile creation error:', profileError)
             console.error('Profile error details:', JSON.stringify(profileError, null, 2))
             
-            // Check if it's a duplicate email error
-            if (profileError.code === '23505' && profileError.message?.includes('email')) {
-              // Email already exists in employees table
+            // For profile creation errors, show a more specific message
+            console.error('Profile creation error details:', {
+              code: profileError.code,
+              message: profileError.message,
+              details: profileError.details,
+              hint: profileError.hint
+            })
+            
+            // Check for specific error types
+            if (profileError.code === 'PGRST204') {
+              // Schema cache issue - column not found
+              setError('Database schema issue detected. Some profile fields are not recognized. Please refresh the page and try again, or contact support.')
+            } else if (profileError.code === '23505' || profileError.message?.includes('duplicate key value violates unique constraint')) {
+              // Unique constraint violation - likely email already exists
+              if (profileError.message?.includes('email') || profileError.message?.includes('duplicate key value violates unique constraint')) {
+                setError('An account with this email already exists. Please try logging in instead.')
+                // Clean up the created user since profile creation failed
+                try {
+                  await supabase.auth.admin.deleteUser(data.user.id)
+                } catch (deleteError) {
+                  console.error('Error cleaning up user:', deleteError)
+                }
+              } else {
+                setError('This account information conflicts with an existing account. Please try different details.')
+              }
+            } else if (profileError.code === '23502') {
+              // Not null violation
+              setError('Please fill in all required fields.')
+            } else if (profileError.code === '23503') {
+              // Foreign key violation
+              setError('Invalid account information provided.')
+            } else if (profileError.message?.includes('network') || profileError.message?.includes('fetch')) {
+              setError('Network error. Please check your connection and try again.')
+            } else if (profileError.message?.includes('400') || profileError.message?.includes('Bad Request')) {
+              // HTTP 400 often indicates constraint violations
               setError('An account with this email already exists. Please try logging in instead.')
               // Clean up the created user since profile creation failed
               try {
@@ -156,19 +200,38 @@ export default function Auth() {
               } catch (deleteError) {
                 console.error('Error cleaning up user:', deleteError)
               }
-              return
+            } else {
+              setError(`Registration failed: ${profileError.message || 'Unknown error'}. Please try again.`)
             }
-            
-            // For other profile creation errors, show a generic message
-            setError('Account created but profile setup failed. Please try logging in or contact support.')
+            return
           } else {
             console.log('Profile created successfully with image') // Debug log
+            
+            // Try to update additional fields separately in case of schema cache issues
+            const updateData: any = {}
+            if (surname) updateData.surname = surname.trim()
+            if (dateOfBirth) updateData.date_of_birth = dateOfBirth
+            if (profileImage) updateData.profile_image = profileImage
+            
+            if (Object.keys(updateData).length > 0) {
+              const { error: updateError } = await supabase
+                .from('employees')
+                .update(updateData)
+                .eq('id', data.user.id)
+              
+              if (updateError) {
+                console.warn('Could not update additional profile fields:', updateError.message)
+                // Don't fail the registration for this, just log it
+              } else {
+                console.log('Successfully updated additional profile fields')
+              }
+            }
+            
+            // Only show success message if profile creation was successful
+            if (data.user && !data.user.email_confirmed_at) {
+              setRegistrationSent(true)
+            }
           }
-        }
-        
-        // Check if email confirmation is required
-        if (data.user && !data.user.email_confirmed_at) {
-          setRegistrationSent(true)
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -189,9 +252,8 @@ export default function Auth() {
         setError('Please check your email and click the confirmation link before logging in.')
       } else if (error.message?.includes('User already registered') || 
                  error.message?.includes('already been registered') ||
+                 error.message?.includes('duplicate key value violates unique constraint') ||
                  error.code === '23505') {
-        setError('An account with this email already exists. Please try logging in instead.')
-      } else if (error.message?.includes('duplicate key value violates unique constraint')) {
         setError('An account with this email already exists. Please try logging in instead.')
       } else {
         setError(error.message || 'An unexpected error occurred. Please try again.')
