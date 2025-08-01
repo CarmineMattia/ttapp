@@ -1,15 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { supabase } from '../../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function Auth() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isRegister, setIsRegister] = useState(false)
+  const [showResetForm, setShowResetForm] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -32,6 +36,25 @@ export default function Auth() {
         if (error) throw error
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      })
+      if (error) throw error
+      
+      setResetSent(true)
     } catch (error: any) {
       setError(error.message)
     } finally {
