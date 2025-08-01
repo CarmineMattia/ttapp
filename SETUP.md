@@ -111,4 +111,28 @@ The foundation is set for future features like:
 - Advanced filtering and search
 - Team management (admin dashboard)
 - Detailed analytics and reports
-- Project management features 
+- Project management features
+
+## 👤 **Enhanced Registration Process**
+
+### **New Registration Fields**
+The registration process now includes additional user information:
+- **First Name** - User's first name
+- **Last Name** - User's last name  
+- **Date of Birth** - Must be at least 13 years old
+- **Email** - User's email address
+- **Password** - Must meet security requirements
+
+### **Registration Flow**
+1. **Fill out registration form** with all required fields
+2. **Password validation** - Real-time feedback on requirements
+3. **Age verification** - Must be 13+ years old
+4. **Email confirmation** - Check inbox for verification link
+5. **Profile creation** - Employee profile automatically created
+6. **Login access** - Can sign in after email confirmation
+
+### **Database Migration**
+If you have an existing database, run the migration script:
+1. Go to Supabase SQL Editor
+2. Copy and paste `database-migration.sql`
+3. Run the script to add new fields to existing employees table 

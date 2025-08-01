@@ -13,6 +13,7 @@ A modern, full-stack time tracking application built with Next.js, TypeScript, a
 - **📱 Responsive Design** - Works on desktop and mobile
 - **🔐 Authentication** - Secure user authentication with Supabase Auth
 - **🛡️ Row Level Security** - Users can only access their own data
+- **🎨 Profile Avatars** - Automatic DiceBear Pixel Art avatar generation during registration
 
 ## 🚀 Quick Start
 
@@ -69,7 +70,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### 7. Create Your Account
 
 1. Go to [http://localhost:3000/auth](http://localhost:3000/auth)
-2. Create a new account or sign in
+2. Create a new account with a custom profile avatar
 3. Start tracking your time!
 
 ## 📁 Project Structure
@@ -84,6 +85,7 @@ timeyeet/
 │   ├── components/         # React components
 │   │   ├── ui/            # Reusable UI components
 │   │   ├── Auth.tsx       # Authentication component
+│   │   ├── AvatarPreview.tsx # Avatar generation component
 │   │   ├── Timer.tsx      # Time tracking component
 │   │   └── DashboardLayout.tsx
 │   ├── lib/               # Utility libraries
@@ -91,6 +93,8 @@ timeyeet/
 │   │   ├── supabase.ts    # Supabase client
 │   │   └── auth-context.tsx
 │   └── utils/             # Helper functions
+│       ├── avatarGenerator.ts # DiceBear avatar utilities
+│       └── passwordValidation.ts
 ├── database-setup.sql     # Database schema and setup
 └── public/               # Static assets
 ```
@@ -99,7 +103,7 @@ timeyeet/
 
 The application uses three main tables:
 
-- **employees** - User profiles and information
+- **employees** - User profiles and information (including profile images)
 - **projects** - Work projects and categories  
 - **shifts** - Time tracking sessions with start/end times
 
@@ -142,6 +146,15 @@ The `database-setup.sql` file includes:
 - **Recent Shifts** - Quick view of latest sessions
 - **All Shifts Table** - Complete history with filtering
 - **Export** - Download data as Excel or CSV
+
+### Profile Avatars
+
+During registration, users get a unique Pixel Art avatar generated using [DiceBear's API](https://www.dicebear.com/how-to-use/http-api/):
+
+- **Automatic Generation** - Avatars are created based on your name or email
+- **Customizable** - Regenerate random avatars or create from your name
+- **Consistent** - Same name/email always generates the same avatar
+- **Professional** - Clean Pixel Art style suitable for work environments
 
 ## 🛠️ Development
 

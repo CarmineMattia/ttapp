@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import Sidebar from './Sidebar'
+import { ThemeToggle } from './theme-toggle'
 import { Menu, X, Search } from 'lucide-react'
 
 interface DashboardLayoutProps {
@@ -14,7 +15,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex h-screen bg-background">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <Sidebar 
@@ -27,7 +28,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50"
+            className="fixed inset-0 bg-black/50"
             onClick={() => setMobileSidebarOpen(false)}
           />
           <div className="fixed inset-y-0 left-0 z-50">
@@ -39,7 +40,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+        <header className="bg-card border-b border-border px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
@@ -60,7 +61,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Menu className="w-5 h-5" />
               </Button>
               
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h1 className="text-xl font-semibold text-card-foreground">
                 Dashboard
               </h1>
             </div>
@@ -70,12 +71,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Button variant="ghost" size="sm">
                 <Search className="w-5 h-5" />
               </Button>
+              <ThemeToggle />
             </div>
           </div>
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 overflow-auto bg-muted/30">
           <div className="p-6">
             {children}
           </div>

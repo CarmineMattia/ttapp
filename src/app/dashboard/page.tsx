@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import DashboardLayout from '@/components/DashboardLayout';
 import Timer from '@/components/Timer';
+import ShiftsTable from '@/components/ShiftsTable';
 import { 
   Users, 
   Clock, 
@@ -22,17 +23,26 @@ import { db, type Shift } from '../../lib/database';
 import { exportShiftsToExcel, exportShiftsToCSV, calculateTotalHours, formatDuration } from '@/utils/exportHelpers';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { SearchDialog, type SearchFilters } from '@/components/SearchDialog';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [stats, setStats] = useState({
     totalHours: 0,
     totalShifts: 0,
     completedShifts: 0,
     averageHoursPerShift: 0
+  });
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    query: '',
+    projectFilter: '',
+    statusFilter: '',
+    dateFrom: '',
+    dateTo: ''
   });
 
   // Redirect if not authenticated
@@ -90,6 +100,9 @@ export default function DashboardPage() {
         completedShifts,
         averageHoursPerShift: averageHours
       });
+
+      // Trigger table refresh
+      setRefreshTrigger(prev => prev + 1);
     }
   };
 
@@ -100,6 +113,27 @@ export default function DashboardPage() {
       exportShiftsToCSV(shifts, 'my-shifts');
     }
   };
+
+  const handleSearch = (filters: SearchFilters) => {
+    setSearchFilters(filters);
+  };
+
+  const handleClearSearch = () => {
+    setSearchFilters({
+      query: '',
+      projectFilter: '',
+      statusFilter: '',
+      dateFrom: '',
+      dateTo: ''
+    });
+  };
+
+  // Get unique projects for the search filter
+  const uniqueProjects = Array.from(new Set(
+    shifts
+      .map(shift => shift.project?.name)
+      .filter(Boolean) as string[]
+  )).sort();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -234,12 +268,12 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                  <Search className="h-4 w-4" />
-                </button>
-                <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                  <Filter className="h-4 w-4" />
-                </button>
+                <SearchDialog
+                  onSearch={handleSearch}
+                  onClear={handleClearSearch}
+                  currentFilters={searchFilters}
+                  projects={uniqueProjects}
+                />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
@@ -261,101 +295,13 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Project
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Duration
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Notes
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {shifts.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                      No shifts found. Start your first timer to begin tracking!
-                    </td>
-                  </tr>
-                ) : (
-                  shifts.map((shift) => {
-                    const duration = shift.end_time 
-                      ? (new Date(shift.end_time).getTime() - new Date(shift.start_time).getTime()) / (1000 * 60 * 60)
-                      : null;
-                    
-                    return (
-                      <tr key={shift.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {shift.project?.name || 'Unknown Project'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">
-                            {new Date(shift.start_time).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">
-                            {new Date(shift.start_time).toLocaleTimeString()} - {shift.end_time ? new Date(shift.end_time).toLocaleTimeString() : 'In Progress'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">
-                            {duration ? formatDuration(duration) : 'In Progress'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(shift.status)}`}>
-                            {getStatusText(shift.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {shift.notes || '-'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+          <div className="p-6">
+            <ShiftsTable 
+              onShiftUpdate={handleShiftUpdate} 
+              refreshTrigger={refreshTrigger} 
+              searchFilters={searchFilters}
+            />
           </div>
-          
-          {/* Pagination */}
-          {shifts.length > 0 && (
-            <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Showing {shifts.length} shift{shifts.length !== 1 ? 's' : ''}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </DashboardLayout>

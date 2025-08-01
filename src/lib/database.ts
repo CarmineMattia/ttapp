@@ -220,7 +220,9 @@ export const db = {
         project:projects(*)
       `)
       .eq('employee_id', userId)
-      .eq('status', 'in_progress')
+      .in('status', ['in_progress', 'paused'])
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single()
     
     if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows returned

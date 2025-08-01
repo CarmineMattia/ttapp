@@ -17,6 +17,7 @@ interface TimerProps {
 
 export default function Timer({ onShiftUpdate }: TimerProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState('')
   const [notes, setNotes] = useState('')
@@ -65,12 +66,22 @@ export default function Timer({ onShiftUpdate }: TimerProps) {
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
     
-    if (currentShift && currentShift.status === 'in_progress') {
-      interval = setInterval(() => {
+    if (currentShift) {
+      // Calculate initial elapsed time for paused shifts
+      if (currentShift.status === 'paused') {
         const startTime = new Date(currentShift.start_time).getTime()
         const now = new Date().getTime()
         setElapsedTime(Math.floor((now - startTime) / 1000))
-      }, 1000)
+      }
+      
+      // Start timer for in_progress shifts
+      if (currentShift.status === 'in_progress') {
+        interval = setInterval(() => {
+          const startTime = new Date(currentShift.start_time).getTime()
+          const now = new Date().getTime()
+          setElapsedTime(Math.floor((now - startTime) / 1000))
+        }, 1000)
+      }
     }
     
     return () => {
@@ -130,6 +141,7 @@ export default function Timer({ onShiftUpdate }: TimerProps) {
       const stoppedShift = await db.stopShift(currentShift.id)
       setCurrentShift(null)
       setElapsedTime(0)
+      setShowStopConfirmation(false)
       onShiftUpdate?.()
     } catch (error) {
       setError('Failed to stop shift')
@@ -137,6 +149,10 @@ export default function Timer({ onShiftUpdate }: TimerProps) {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleStopClick = () => {
+    setShowStopConfirmation(true)
   }
 
   const handlePauseShift = async () => {
@@ -242,7 +258,7 @@ export default function Timer({ onShiftUpdate }: TimerProps) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleStopShift}
+                  onClick={handleStopClick}
                   disabled={isLoading}
                   className="text-red-600 border-red-600 hover:bg-red-50"
                 >
@@ -266,7 +282,7 @@ export default function Timer({ onShiftUpdate }: TimerProps) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleStopShift}
+                  onClick={handleStopClick}
                   disabled={isLoading}
                   className="text-red-600 border-red-600 hover:bg-red-50"
                 >
@@ -279,15 +295,17 @@ export default function Timer({ onShiftUpdate }: TimerProps) {
         </div>
       )}
 
-      {/* Start New Shift */}
+      {/* Start New Shift or Resume Paused Shift */}
       {!currentShift && (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-              <Play className="w-4 h-4 mr-2" />
-              Start Timer
-            </Button>
-          </DialogTrigger>
+        <div className="space-y-3">
+          
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                <Play className="w-4 h-4 mr-2" />
+                Start Timer
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Start New Shift</DialogTitle>
@@ -346,7 +364,53 @@ export default function Timer({ onShiftUpdate }: TimerProps) {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       )}
+
+      {/* Stop Confirmation Dialog */}
+      <Dialog open={showStopConfirmation} onOpenChange={setShowStopConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Stop Shift</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to stop this shift? This action cannot be undone.
+            </p>
+            
+            {currentShift && (
+              <div className="bg-muted/50 rounded-lg p-3">
+                <div className="text-sm">
+                  <div className="font-medium">Project: {currentShift.project?.name}</div>
+                  <div className="text-muted-foreground">
+                    Duration: {formatTime(elapsedTime)}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex space-x-2">
+              <Button
+                onClick={handleStopShift}
+                disabled={isLoading}
+                variant="destructive"
+                className="flex-1"
+              >
+                {isLoading ? 'Stopping...' : 'Yes, Stop Shift'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowStopConfirmation(false)}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

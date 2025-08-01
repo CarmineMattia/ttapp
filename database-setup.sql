@@ -14,7 +14,10 @@ DROP TABLE IF EXISTS projects CASCADE;
 CREATE TABLE employees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
+  surname TEXT NOT NULL,
+  date_of_birth DATE NOT NULL,
   email TEXT UNIQUE NOT NULL,
+  profile_image TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
