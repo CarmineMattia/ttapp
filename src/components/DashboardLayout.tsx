@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import Sidebar from './Sidebar'
 import { ThemeToggle } from './theme-toggle'
-import { Menu, X, Search } from 'lucide-react'
+import { Menu, Search } from 'lucide-react'
 
 interface DashboardLayoutProps {
   children: React.ReactNode

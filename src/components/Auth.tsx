@@ -240,24 +240,8 @@ export default function Auth() {
         })
         if (error) throw error
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error('Auth error:', error) // Debug log
-      console.error('Auth error details:', JSON.stringify(error, null, 2)) // Debug log
-      
-      // Improve error messages for better UX
-      if (error.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please try again.')
-      } else if (error.message?.includes('Email not confirmed')) {
-        setError('Please check your email and click the confirmation link before logging in.')
-      } else if (error.message?.includes('User already registered') || 
-                 error.message?.includes('already been registered') ||
-                 error.message?.includes('duplicate key value violates unique constraint') ||
-                 error.code === '23505') {
-        setError('An account with this email already exists. Please try logging in instead.')
-      } else {
-        setError(error.message || 'An unexpected error occurred. Please try again.')
-      }
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'An unknown error occurred')
     } finally {
       setLoading(false)
     }
